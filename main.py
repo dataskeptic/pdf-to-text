@@ -15,7 +15,7 @@ def read_root():
     return {"Hello": "World"}
   
 @app.post("/pdf-to-text-fitz")   #PyMuPDF
-async def extract_text_from_pdf(file: UploadFile = File(...)):
+async def extract_text_using_fitz(file: UploadFile = File(...)):
     try:
         # Read PDF file
         if not file.filename.endswith(".pdf"):
@@ -27,14 +27,14 @@ async def extract_text_from_pdf(file: UploadFile = File(...)):
         # Extract text from all pages
         text = "\n".join(page.get_text() for page in pdf_document)
 
-        return {"filename": file.filename, "extracted_text": text}
+        return {"file_name": file.filename, "extracted_text": text}
 
     except Exception as e:
         return {"error": str(e)}
       
       
 @app.post("/pdf-to-text-pdfplumber")
-async def extract_text_from_pdf(file: UploadFile = File(...)):
+async def extract_text_using_pdfplumber(file: UploadFile = File(...)):
     # Check if the uploaded file is a PDF
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -51,14 +51,14 @@ async def extract_text_from_pdf(file: UploadFile = File(...)):
                 for page in pdf.pages:
                     extracted_text += page.extract_text() + "\n\n"
                 
-                return {"text": extracted_text.strip()}
+                return {"file_name": file.filename, "extracted_text": extracted_text.strip()}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
     
     
 @app.post("/pdf-to-text-pdfminer")
-async def extract_text_from_pdf(file: UploadFile = File(...)):
+async def extract_text_from_pdfminer(file: UploadFile = File(...)):
     # Validate file type
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -71,7 +71,7 @@ async def extract_text_from_pdf(file: UploadFile = File(...)):
         with BytesIO(contents) as pdf_file:
             # Extract all text from PDF
             extracted_text = extract_text(pdf_file)
-            return {"text": extracted_text.strip()}
+            return {"file_name": file.filename, "extracted_text": extracted_text.strip()}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF processing failed: {str(e)}")
