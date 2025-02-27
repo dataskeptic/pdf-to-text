@@ -4,6 +4,8 @@ import fitz
 #import io
 import pdfplumber
 from io import BytesIO
+from pdfminer.high_level import extract_text
+
 
 app = FastAPI()
 
@@ -12,10 +14,13 @@ app = FastAPI()
 def read_root():
     return {"Hello": "World"}
   
-@app.post("/pdf-to-text-pdf/")
+@app.post("/pdf-to-text-fitz")   #PyMuPDF
 async def extract_text_from_pdf(file: UploadFile = File(...)):
     try:
         # Read PDF file
+        if not file.filename.endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+        
         pdf_bytes = await file.read()
         pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
 
@@ -50,3 +55,23 @@ async def extract_text_from_pdf(file: UploadFile = File(...)):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
+    
+    
+@app.post("/pdf-to-text-pdfminer")
+async def extract_text_from_pdf(file: UploadFile = File(...)):
+    # Validate file type
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    try:
+        # Read uploaded PDF into memory
+        contents = await file.read()
+        
+        # Use BytesIO to create a file-like object
+        with BytesIO(contents) as pdf_file:
+            # Extract all text from PDF
+            extracted_text = extract_text(pdf_file)
+            return {"text": extracted_text.strip()}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF processing failed: {str(e)}")
