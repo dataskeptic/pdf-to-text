@@ -19,10 +19,17 @@ async def extract_text_using_fitz(file: UploadFile = File(...)):
 async def extract_text_using_pdfplumber(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
     contents = await file.read()
     try:
-        text = pdf_service.extract_text_pdfplumber(contents)
-        return {"file_name": file.filename, "extracted_text": text}
+        raw_text = pdf_service.extract_text_pdfplumber(contents)
+        structured_data = pdf_service.parse_vehicle_document(raw_text)
+        
+        return {
+            "file_name": file.filename,
+            "extracted_text": raw_text,
+            "structured_data": structured_data
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
       
