@@ -23,6 +23,7 @@ async def extract_text_using_pdfplumber(file: UploadFile = File(...)):
     contents = await file.read()
     try:
         raw_text = pdf_service.extract_text_pdfplumber(contents)
+        raw_text = raw_text.lower()
         structured_data = pdf_service.parse_vehicle_document(raw_text)
         
         return {

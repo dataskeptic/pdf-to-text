@@ -9,8 +9,8 @@ def extract_text_fitz(pdf_bytes: bytes) -> str:
     # Open the PDF file using PyMuPDF (fitz)
     pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
     # Extract text from each page
-    text = "\n".join(page.get_text() for page in pdf_document)
-    return text
+    extracted_text = "\n".join(page.get_text() for page in pdf_document)
+    return extracted_text.strip()
 
 def extract_text_pdfplumber(contents: bytes) -> str:
     # Use BytesIO to convert bytes to a file-like object
@@ -18,10 +18,24 @@ def extract_text_pdfplumber(contents: bytes) -> str:
         with pdfplumber.open(pdf_file) as pdf:
             extracted_text = ""
             for page in pdf.pages:
-                # Ensure we handle pages that might not return text
-                page_text = page.extract_text() or ""
-                extracted_text += page_text + "\n\n"
+                extracted_text += page.extract_text(x_tolerance=3, x_tolerance_ratio=None, y_tolerance=3, layout=False, x_density=7.25, y_density=13, line_dir_render=None, char_dir_render=None) or ""
+                extracted_text += "\n\n"
+   
+
     return extracted_text.strip()
+
+
+def extract_tables_pdfplumber(contents: bytes):
+    with pdfplumber.open(BytesIO(contents)) as pdf:
+        for i, page in enumerate(pdf.pages):
+            table = page.extract_table()  # Extracts a table as a list of lists
+            if table:
+                print(f"🟢 Table found on page {i+1}")
+                for row in table:
+                    print(row)
+            else:
+                print(f"❌ No table found on page {i+1}")
+
 
 def extract_text_pdfminer(contents: bytes) -> str:
     # Use BytesIO to create a file-like object for pdfminer
@@ -32,22 +46,25 @@ def extract_text_pdfminer(contents: bytes) -> str:
 def parse_vehicle_document(text: str) -> Dict[str, Any]:
     """Parse Brazilian vehicle document information with targeted extraction"""
     patterns = {
-        "codigo_renavam": r"CÓDIGO RENAVAM\n(\d+)",
-        "placa_exercicio": r"PLACA EXERCÍCIO\n(\S+)\s(\d{4})",
-        "cpf": r"CPF / CNPJ\n(\d{3}\.\d{3}\.\d{3}-\d{2})",
-        "numero_crv": r"NÚMERO DO CRV\n(\d+)",
-        "codigo_seguranca_cla": r"CÓDIGO DE SEGURANÇA DO CLA\n(\d+)",
-        "marca_modelo": r"MARCA / MODELO / VERSÃO\n(.+?)\n",
-        "cor_predominante": r"COR PREDOMINANTE\n(\S+)",
-        "combustivel": r"COMBUSTÍVEL\n(\S+)",
-        "renavam": r"RENAVAM\n(\d+)",
-        "chassi": r"CHASSI\n(\S+)",
-        "data_emissao": r"Documento emitido por .+? em (\d{2}/\d{2}/\d{4}) às (\d{2}:\d{2}:\d{2})",
-        "categoria": r"CATEGORIA\n(.+?)\n",
-        "nome_proprietario": r"NOME\n(.+?)\n",
-        "ano_fabricacao": r"ANO FABRICAÇÃO\n(\d{4})",
-        "ano_modelo": r"ANO MODELO\n(\d{4})"
+        "codigo_renavam": r"código renavam\n(\d+)",
+        "placa_exercicio": r"placa exercício\n(\S+)\s(\d{4})",
+        "cpf": r"cpf / cnpj\n(\d{3}\.\d{3}\.\d{3}-\d{2})",
+        "numero_crv": r"número do crv\n(\d+)",
+        "codigo_seguranca_cla": r"código de segurança do cla cat local data\n(\d+)",
+        "local": r"código de segurança do cla cat local data\n\d+\s+\*\*\*\s+(.+?)\s+\d{2}/\d{2}/\d{4}",
+        "data": r"código de segurança do cla cat local data\n\d+\s+\*\*\*\s+.+?\s+(\d{2}/\d{2}/\d{4})",
+        "marca_modelo": r"marca / modelo / versão\n(.+?)\n",
+        "cor_predominante": r"cor predominante\n(\S+)",
+        "combustivel": r"combustível\n(\S+)",
+        "renavam": r"renavam\n(\d+)",
+        "chassi": r"chassi\n(?:.*\n)*?.*?([a-zA-Z0-9]{17})",
+        "data_emissao": r"documento emitido por .+? em (\d{2}/\d{2}/\d{4}) às (\d{2}:\d{2}:\d{2})",
+        "categoria": r"categoria\n(.+?)\n",
+        "nome_proprietario": r"nome\n(.+?)\n",
+        "ano_fabricacao": r"ano fabricação\n(\d{4})",
+        "ano_modelo": r"ano modelo\n(\d{4})"
     }
+
 
     structured_data = {}
     
