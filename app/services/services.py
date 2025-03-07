@@ -94,3 +94,50 @@ def parse_vehicle_document(text: str) -> Dict[str, Any]:
         del structured_data['marca_modelo']
 
     return structured_data
+
+
+def parse_medical_certificate(text: str) -> Dict[str, Any]:
+    """Parse Brazilian medical certificate information with targeted extraction"""
+    
+    patterns = {
+        "paciente_nome": r"atesto, para os devidos fins, que\s+([\w\s]+)\s+\(cpf:",  # Extracts patient name
+        "cpf": r"cpf:\s*(\d{3}\.\d{3}\.\d{3}-\d{2})",  # Extract CPF
+        "medico_nome": r"crm\s*-\s*[a-zA-Z]+\s*\d{3}\s*\n(.+?)\ncrm\s*-\s*[a-zA-Z]+\s*\d{4}",  # Extracts name between the two CRMs
+        "crm": r"crm\s*-\s*([a-zA-Z]+)\s*(\d{4})",  # Extract CRM (with state and number)
+        "cid_10": r"cid-10:\s*([a-zA-Z0-9]+)",  # Extract CID-10 code
+        "data_emissao": r"teresina,\s*(\d{2}/\d{2}/\d{4})\s*(\d{2}:\d{2}:\d{2})"  # Extract date and time
+    }
+
+    structured_data = {}
+
+    for key, pattern in patterns.items():
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            if len(match.groups()) > 1:
+                structured_data[key] = {
+                    "data": match.group(1),
+                    "hora": match.group(2)
+                } if key == "data_emissao" else f"{match.group(1)}-{match.group(2)}"
+            else:
+                structured_data[key] = match.group(1).strip()
+
+    return structured_data
+
+
+
+def parse_cpf_document(text: str) -> Dict[str, Any]:
+    """Parse Brazilian CPF document information with targeted extraction"""
+    
+    patterns = {
+        "cpf": r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b",  # Matches CPF format 000.000.000-00
+        "nome": r"nome\s*\n*([\w\s]+?)\n",  # Captures name after "nome" (handles extra spaces/newlines)
+        "nascimento": r"nascimento\s*\n*(\d{2}/\d{2}/\d{4})"  # Matches date format DD/MM/YYYY
+    }
+
+    structured_data = {}
+
+    for key, pattern in patterns.items():
+        match = re.findall(pattern, text, re.IGNORECASE)  # Use findall() to prevent missing group errors
+        structured_data[key] = match[0].strip() if match else None  # Return None instead of throwing an error
+
+    return structured_data

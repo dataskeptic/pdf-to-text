@@ -1,10 +1,10 @@
 from fastapi import FastAPI
-from app.routers import pdf_router
+from app.routers import routers
 
 app = FastAPI()
 
 # Include the PDF router with all the endpoints.
-app.include_router(pdf_router.router)
+app.include_router(routers.router)
 
 @app.get("/")
 def read_root():
